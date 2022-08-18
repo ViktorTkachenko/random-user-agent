@@ -12,6 +12,8 @@
 
 namespace Campo;
 
+use Exception;
+
 class UserAgent
 {
     /**
@@ -19,34 +21,29 @@ class UserAgent
      *
      * @var array
      */
-    private static $agentDetails;
+    private static array $agentDetails;
 
     /**
      * Grab a random user agent from the library's agent list
-     *
-     * @param  array $filterBy
-     * @return string
-     * @throws \Exception
+     * @throws Exception
      */
-    public static function random($filterBy = [])
+    public static function random($filterBy = []) : string
     {
         $agents = self::loadUserAgents($filterBy);
 
         if (empty($agents)) {
-            throw new \Exception('No user agents matched the filter');
+            throw new Exception('No user agents matched the filter');
         }
 
-        return $agents[mt_rand(0, count($agents) - 1)];
+        return $agents[random_int(0, count($agents) - 1)];
     }
 
     /**
      * Get all of the unique values of the device_type field, which can be used for filtering
      * Device types give a general description of the type of hardware that the agent is running,
      * such as "Desktop", "Tablet", or "Mobile"
-     *
-     * @return array
      */
-    public static function getDeviceTypes()
+    public static function getDeviceTypes() : array
     {
         return self::getField('device_type');
     }
@@ -55,10 +52,8 @@ class UserAgent
      * Get all of the unique values of the agent_type field, which can be used for filtering
      * Agent types give a general description of the type of software that the agent is running,
      * such as "Crawler" or "Browser"
-     *
-     * @return array
      */
-    public static function getAgentTypes()
+    public static function getAgentTypes() : array
     {
         return self::getField('agent_type');
     }
@@ -66,10 +61,8 @@ class UserAgent
     /**
      * Get all of the unique values of the agent_name field, which can be used for filtering
      * Agent names are general identifiers for a given user agent. For example, "Chrome" or "Firefox"
-     *
-     * @return array
      */
-    public static function getAgentNames()
+    public static function getAgentNames() : array
     {
         return self::getField('agent_name');
     }
@@ -77,10 +70,8 @@ class UserAgent
     /**
      * Get all of the unique values of the os_type field, which can be used for filtering
      * OS Types are general names given for an operating system, such as "Windows" or "Linux"
-     *
-     * @return array
      */
-    public static function getOSTypes()
+    public static function getOSTypes() : array
     {
         return self::getField('os_type');
     }
@@ -88,28 +79,24 @@ class UserAgent
     /**
      * Get all of the unique values of the os_name field, which can be used for filtering
      * OS Names are more specific names given to an operating system, such as "Windows Phone OS"
-     *
-     * @return array
      */
-    public static function getOSNames()
+    public static function getOSNames() : array
     {
         return self::getField('os_name');
     }
 
     /**
      * This is a helper for the publicly-exposed methods named get...()
-     * @param  string $fieldName
-     * @return array
-     * @throws \Exception
+     * @throws Exception
      */
-    private static function getField($fieldName)
+    private static function getField($fieldName) : array
     {
         $agentDetails = self::getAgentDetails();
         $values       = [];
 
         foreach ($agentDetails as $agent) {
             if (!isset($agent[$fieldName])) {
-                throw new \Exception("Field name \"$fieldName\" not found, can't continue");
+                throw new Exception("Field name \"$fieldName\" not found, can't continue");
             }
 
             $values[] = $agent[$fieldName];
@@ -120,11 +107,8 @@ class UserAgent
 
     /**
      * Validates the filter so that no unexpected values make their way through
-     *
-     * @param array $filterBy
-     * @return array
      */
-    private static function validateFilter($filterBy = [])
+    private static function validateFilter($filterBy = []) : array
     {
         // Components of $filterBy that will not be ignored
         $filterParams = [
@@ -148,24 +132,21 @@ class UserAgent
 
     /**
      * Returns an array of user agents that match a filter if one is provided
-     *
-     * @param array $filterBy
-     * @return array
      */
-    private static function loadUserAgents($filterBy = [])
+    private static function loadUserAgents($filterBy = []) : array
     {
         $filterBy = self::validateFilter($filterBy);
 
         $agentDetails = self::getAgentDetails();
         $agentStrings = [];
 
-        for ($i = 0; $i < count($agentDetails); $i++) {
+        foreach($agentDetails as $agentDetail){
             foreach ($filterBy as $key => $value) {
-                if (!isset($agentDetails[$i][$key]) || !self::inFilter($agentDetails[$i][$key], $value)) {
+                if (!isset($agentDetail[$key]) || !self::inFilter($agentDetail[$key], $value)) {
                     continue 2;
                 }
             }
-            $agentStrings[] = $agentDetails[$i]['agent_string'];
+            $agentStrings[] = $agentDetail['agent_string'];
         }
 
         return array_values($agentStrings);
@@ -173,20 +154,13 @@ class UserAgent
 
     /**
      * return if key exist in array of filters
-     *
-     * @param  $key
-     * @param  $array
-     * @return bool
      */
-    private static function inFilter($key, $array)
+    private static function inFilter($key, $array) : bool
     {
         return in_array(strtolower($key), array_map('strtolower', (array) $array));
     }
 
-    /**
-     * @return array
-     */
-    private static function getAgentDetails()
+    private static function getAgentDetails() : array
     {
         if (!isset(self::$agentDetails)) {
             self::$agentDetails = json_decode(file_get_contents(__DIR__ . '/agents/agent_list.json'), true);
